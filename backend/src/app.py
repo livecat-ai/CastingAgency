@@ -21,7 +21,7 @@ class Movie(db.Model):
     __tablename__ = "movie"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
-    # releasedate = db.Column(db.Date, nullable=False)
+    releasedate = db.Column(db.Date, nullable=False)
     actors = db.relationship('Actor', secondary=movie_cast,
         backref=db.backref('movies', lazy=True))
 
@@ -33,16 +33,16 @@ class Movie(db.Model):
     #     return f'< Movies: {self.title}, {self.releasedate} >'
 
     def __repr__(self):
-        return f'< Movies: {self.title} >'
+        return f'< Movie: {self.title} >'
 
 
 class Actor(db.Model):
     __tablename__ = "actor"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
-    # age = db.Column(db.Integer, nullable=False)
-    # gender = db.Column(db.String, nullable=False)
-    # movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    gender = db.Column(db.String, nullable=False)
+    # movie_id = db.Column(db.Integer, db.ForeignKey('movie.id'), nullable=True)
 
     # def __init__(self, name, age, gender, movie_id):
     #     self.name = name
@@ -54,7 +54,7 @@ class Actor(db.Model):
     #     return f'< Actors: {self.name}, {self.age}, {self.gender} >'
 
     def __repr__(self):
-        return f'< Actors: {self.name}>'
+        return f'< Actor: {self.name}>'
 
 
 # db.create_all()
