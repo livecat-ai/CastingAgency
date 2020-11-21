@@ -1,64 +1,102 @@
-import os
-
-from flask import Flask, render_template
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_migrate import Migrate
+from flask_cors import CORS
 
-database_path = os.environ['DATABASE_URL']
+from models import setup_db, Actor, Movie
 
-app = Flask(__name__,template_folder='../../frontend/src/templates/')
-app.config['SQLALCHEMY_DATABASE_URI'] = database_path
-db = SQLAlchemy(app)
+ITEMS_PER_PAGE = 5
 
-
-migrate = Migrate(app, db)
-movie_cast = db.Table('movie_cast',
-    db.Column('movie_id', db.Integer, db.ForeignKey('movie.id'), primary_key=True),
-    db.Column('actor_id', db.Integer, db.ForeignKey('actor.id'), primary_key=True)
-    )
-
-class Movie(db.Model):
-    __tablename__ = "movie"
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String, nullable=False)
-    releasedate = db.Column(db.Date, nullable=False)
-    actors = db.relationship('Actor', secondary=movie_cast,
-        backref=db.backref('movies', lazy=True))
-
-    # def __init__(self, title, release_date):
-    #     self.title = title
-    #     self.releasedate = release_date
-
-    # def __repr__(self):
-    #     return f'< Movies: {self.title}, {self.releasedate} >'
-
-    def __repr__(self):
-        return f'< Movie: {self.title} >'
+def create_app(test_config=None):
+    # create and configure the app
+    app = Flask(__name__, template_folder='../../frontend/src/templates/')
+    db = setup_db(app)
+    # migrate = Migrate(app, db)
 
 
-class Actor(db.Model):
-    __tablename__ = "actor"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    age = db.Column(db.Integer, nullable=False)
-    gender = db.Column(db.String, nullable=False)
-    # movie_id = db.Column(db.Integer, db.ForeignKey('movie.id'), nullable=True)
+    # app = Flask(__name__,template_folder='../../frontend/src/templates/')
+    # db = setup_db(app)
+    # migrate = Migrate(app, db)
+    # db.create_all()
 
-    # def __init__(self, name, age, gender, movie_id):
-    #     self.name = name
-    #     self.age = age
-    #     self.gender = gender
-    #     self.movie_id = movie_id
+    CORS(app)
 
-    # def __repr__(self):
-    #     return f'< Actors: {self.name}, {self.age}, {self.gender} >'
+    
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
+        return response
 
-    def __repr__(self):
-        return f'< Actor: {self.name}>'
+    '''
+    Todo:
+        - edit actor
+        - delete actor
+        - add movie
+        - edit movie
+        - delete movie
+        - get specific movie
+        - add project
+    '''
+
+    @app.route('/actor/create', methods=["POST"])
+    def create_actor():
+        # name = request.form.get('name')
+        # age = int(request.form.get('age'))
+        # gender = request.form.get('gender')
+        # actor = Actor(name=name, age=age, gender=gender)
+        # db.session.add(actor)
+        # db.session.commit()
+        return jsonify({
+            'success': True
+        })
 
 
-# db.create_all()
+    @app.route('/actors')
+    def get_actors():
+        page = request.args.get('page', 1, type=int)
+        start = (page - 1) * ITEMS_PER_PAGE
+        end = start + ITEMS_PER_PAGE
+        formated_actors = [actor.format() for actor in Actor.query.all()]
+        return jsonify({
+            'success': True,
+            'actors': formated_actors[start:end],
+            'total_actors': len(formated_actors)
+            })
 
-@app.route('/')
-def index():
-    return render_template('index.html', data=Movies.query.all())
+
+    @app.route('/actor/<int:actor_id>', methods=['GET'])
+    def get_specific_actor(actor_id):
+        query = Actor.query.get(actor_id)
+        if query == None:
+            abort(404)
+
+        return jsonify({
+            'success': True,
+            'actor': query.format()
+        })
+
+
+    @app.route('/')
+    def index():
+        for actor in Actor.query.all():
+            print(actor)
+        return render_template('index.html', data=Actor.query.all())
+
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "success": False,
+            "error": 404,
+            "message": "Not found"
+        }), 404
+
+    @app.errorhandler(500)
+    def not_found(error):
+        return jsonify({
+            "success": False,
+            "error": 500,
+            "message": "Server Error"
+        }), 500
+
+    return app
