@@ -422,12 +422,6 @@ class CastingTestCase(unittest.TestCase):
 
 
 
-
-
-
-
-        
-    
 #---------------------------------
 # Global helper functions
 #---------------------------------
