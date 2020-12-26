@@ -15,6 +15,10 @@ import jwt
 class CastingTestCase(unittest.TestCase):
 
     def setUp(self):
+        # Uncomment this while connecting to heroku
+        # self.database_path = "postgres://ahqolbipadtbpj:8166ebc8ce23e355a963e79e074c28775b189944b6935e1a3a2278b906fa4882@ec2-3-208-50-226.compute-1.amazonaws.com:5432/dbo69r1cnn6k5m"
+ 
+ 
         self.app = create_app(test_config=True)
         self.client = self.app.test_client
         with self.app.app_context():

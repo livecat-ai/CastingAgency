@@ -60,7 +60,8 @@ def create_app(test_config=False):
     if test_config == True:
         database_path = os.environ['TEST_DATABASE_URL']
     elif test_config == False:
-        database_path = os.environ['DATABASE_URL']
+        # database_path = os.environ['DATABASE_URL']
+        database_path = os.environ['TEST_DATABASE_URL']
 
     app = Flask(__name__, template_folder='../../frontend/src/templates/')
     setup_db(app, database_path = database_path)
