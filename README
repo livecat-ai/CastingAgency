@@ -1,0 +1,32 @@
+Casting app readme.
+
+The URL for the app is: https://casting-jal.herokuapp.com/
+
+Available endpoints are:
+
+Authorized for all users - 
+GET /actors - Get a list of registered actors
+GET /movies - Get a list of registerd movies
+
+Authorized for Casting Director and above -
+POST /actors - Add a new actor with body {'name': 'actor_name', 'age': age as an integer, 'gender': 'm or f'}
+        eg. {'name': 'Colin Farrel', 'age': 44, 'gender': 'm'}
+
+DELETE /actors/id - Delete an actor by database id. eg /acotors/1 to delete the actor with id 1
+PATCH /movies/id - Cast an actor to a movie. eg /movies/1 posting data as {id: 3} will add the actor with id=3 to the movie with id=1.
+
+Authorized for Exec Producer -
+POST /movies - Add a new movie with with body {'title': 'title of movie', 'release date': 'date with the string format "yyyy-mm-dd"'}
+        eg. {'title': 'Gladiator', 'releasedate': '2000-05-12'}
+
+DELETE /movie/id - Delete a movie with id. eg /movie/1 deletes movie with id=1
+
+
+Authorization codes are located in jwt.py. Valid until approx. 19:45gmt 2020/12/27
+where:
+user_01 is Exec Producer
+user_02 is Casting Director
+user_03 is Casting Assistant
+
+To run test locally:
+python test_app.py
