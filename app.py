@@ -2,31 +2,34 @@ import os
 import sys
 
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
+from flask import (
+    Flask,
+    render_template,
+    request, redirect,
+    url_for, jsonify,
+    abort
+)
+from flask_sqlalchemy import sqlalchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 
-
 from models import setup_db, db, Actor, Movie
 
-#--- Uncomment below to disable Auth ---
-# from no_auth import requires_auth, AuthError
-
-#--- Uncomment below to enable Auth ---
 from auth import requires_auth, AuthError
-
-
 
 ITEMS_PER_PAGE = 8
 
-#----------------------------------------------
+# ----------------------------------------------
 # Helper functions
-#----------------------------------------------
+# ----------------------------------------------
+
+
 def paginate(query, request):
     page = request.args.get('page', 1, type=int)
     start = (page - 1) * ITEMS_PER_PAGE
     end = start + ITEMS_PER_PAGE
     return [item.format() for item in query[start: end]]
+
 
 def is_valid_date_string(date_string):
     result = True
@@ -36,15 +39,17 @@ def is_valid_date_string(date_string):
         result = False
     return result
 
-def string_to_datetime(date_string, fmt = '%Y-%m-%d'):
+
+def string_to_datetime(date_string, fmt='%Y-%m-%d'):
     return datetime.strptime(date_string, fmt)
+
 
 def is_string_valid_integer(int_string):
     out = True
     # Check if it's even a number
     try:
         num = float(int_string)
-    except:
+    except ValueError:
         return False
     out = True
     if (int(num) - num) != 0:
@@ -52,39 +57,47 @@ def is_string_valid_integer(int_string):
     return out
 
 
-#----------------------------------------------
+# ----------------------------------------------
 # Create App
-#----------------------------------------------
+# ----------------------------------------------
 def create_app(test_config=False):
     # create and configure the app
-    if test_config == True:
+    if test_config is True:
         database_path = os.environ['TEST_DATABASE_URL']
-    elif test_config == False:
+    elif test_config is False:
         # database_path = os.environ['DATABASE_URL']
         database_path = os.environ['TEST_DATABASE_URL']
 
     app = Flask(__name__, template_folder='../../frontend/src/templates/')
-    setup_db(app, database_path = database_path)
- 
-    CORS(app)
-  
+    setup_db(app, database_path=database_path)
+
+    # CORS(app)
+    cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+
     @app.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers',
+                             'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods',
+                             'GET, PUT, POST, DELETE, OPTIONS')
         return response
 
-
-
-    #--------------------------------------------------
+    # --------------------------------------------------
     # Controlers
-    #--------------------------------------------------
+    # --------------------------------------------------
 
+    @app.route('/', methods=["GET"])
+    def route():
+        return jsonify(
+            {
+                "message": "Welecome to the Casting Agency app!"
+            }
+        )
 
-
-    #--------------------------------------------------
+    # --------------------------------------------------
     # Actor
-    #--------------------------------------------------
+    # --------------------------------------------------
+
     @app.route('/actors', methods=["GET"])
     @requires_auth('get:actors')
     def get_actors(jwt):
@@ -93,13 +106,11 @@ def create_app(test_config=False):
         actors = paginate(query, request)
         if len(actors) == 0:
             abort(404)
-        # formated_actors = [actor.format() for actor in actors]
         return jsonify({
             'success': True,
             'actors': actors,
             'total_actors': total_actors
             })
-
 
     # @app.route('/actors/<int:actor_id>', methods=['GET'])
     # @requires_auth('get:actors')
@@ -116,21 +127,21 @@ def create_app(test_config=False):
     @requires_auth('post:actors')
     def create_actor(jwt):
         body = request.get_json()
-        name = body.get('name', None)
-        age = body.get('age', None)
-        gender = body.get('gender', None)
+        name = body.get('name')
+        age = body.get('age')
+        gender = body.get('gender')
         try:
             actor = Actor(name=name, age=age, gender=gender)
             actor.insert()
-
-            new_actors = Actor.query.filter(Actor.name==name).all() # There might be more than one with the same name
-            actor_id = max([actor.id for actor in new_actors])
-            query = Actor.query.order_by(Actor.id).all()
-            actors = paginate(query, request)
-        except:
+        except sqlalchemy.exc.DataError:
             db.session.rollback()
             db.session.close()
             abort(422)
+        # There might be more than one with the same name
+        new_actors = Actor.query.filter(Actor.name == name).all()
+        actor_id = max([actor.id for actor in new_actors])
+        query = Actor.query.order_by(Actor.id).all()
+        actors = paginate(query, request)
         return jsonify({
             'success': True,
             'created': actor_id,
@@ -138,19 +149,18 @@ def create_app(test_config=False):
             'total_actors': len(Actor.query.all())
         })
 
-
     # @app.route('/actors/search', methods=['POST'])
     # def search_actors():
     #     body = request.get_json()
     #     search_term = body.get('name', None)
-    #     query = Actor.query.filter(Actor.name.ilike(f'%{search_term}%')).all()
+    #     query = Actor.query.filter(Actor.name.ilike(
+    #                       f'%{search_term}%')).all()
     #     actors = paginate(query, request)
     #     return jsonify({
     #         'success': True,
     #         'count': len(actors),
     #         'actors': actors
     #     })
-
 
     # @app.route('/actors/<int:actor_id>', methods=["PATCH"])
     # def edit_actor(actor_id):
@@ -170,18 +180,18 @@ def create_app(test_config=False):
     #     })
 
     @app.route('/actors/<int:actor_id>', methods=['DELETE'])
-    @requires_auth('delete:actors') 
+    @requires_auth('delete:actors')
     def delete_specific_actor(jwt, actor_id):
-        actor = Actor.query.get(actor_id)
-        if actor == None:
+        try:
+            actor = Actor.query.get(actor_id)
+            actor.delete()
+        except AttributeError:
+            db.session.rollback()
+            db.session.close()
             abort(404)
-        # print(actor.format())
-        print(f'deleted {actor.name}')
-        actor.delete()
         query = Actor.query.all()
         total_actors = len(query)
         actors = paginate(query, request)
-        # formated_actors = [actor.format() for actor in actors]
         return jsonify({
             'success': True,
             'deleted': actor_id,
@@ -192,15 +202,14 @@ def create_app(test_config=False):
     # #--------------------------------------------------
     # # Movie
     # #--------------------------------------------------
-    @app.route('/movies', methods = ['GET'])
-    @requires_auth('get:movies') 
+    @app.route('/movies', methods=['GET'])
+    @requires_auth('get:movies')
     def get_movies(jwt):
         query = Movie.query.all()
         total_movies = len(query)
         movies = paginate(query, request)
         if len(movies) == 0:
             abort(404)
-        # formated_movies = [movie.format() for movie in movies]
         return jsonify({
             'success': True,
             'movies': movies,
@@ -222,7 +231,8 @@ def create_app(test_config=False):
     #     body = request.get_json()
     #     search_term = body.get('title', None)
     #     print(search_term)
-    #     query = Movie.query.filter(Movie.title.ilike(f'%{search_term}%')).all()
+    #     query = Movie.query.filter(Movie.title.ilike(
+    #                       f'%{search_term}%')).all()
     #     movies = paginate(query, request)
     #     return jsonify({
     #         'success': True,
@@ -231,34 +241,46 @@ def create_app(test_config=False):
     #     })
 
     @app.route('/movies/create', methods=["POST"])
-    @requires_auth('post:movies') 
+    @requires_auth('post:movies')
     def create_movie(jwt):
-        # title = request.form.get('title')
-        # releasedate = request.form.get('releasedate')
         body = request.get_json()
-        title = body.get('title', None)
-        releasedate = body.get('releasedate', None)
-        if not is_valid_date_string(releasedate):
+        title = body.get('title')
+        releasedate = body.get('releasedate')
+        try:
+            movie = Movie(title=title,
+                          releasedate=string_to_datetime(releasedate)
+                          )
+            movie.insert()
+        except ValueError:
+            db.session.rollback()
+            db.session.close()
             abort(400)
-        movie = Movie(title=title, releasedate=string_to_datetime(releasedate))
-        movie.insert()
+        # There might be more than one with the same name
+        new_movies = Movie.query.filter(Movie.title == title).all()
+        movie_id = max([movie.id for movie in new_movies])
+        query = Movie.query.order_by(Movie.id).all()
+        total_movies = len(query)
+        movies = paginate(query, request)
         return jsonify({
-            'success': True
+            'success': True,
+            'created': movie_id,
+            'movies': movies,
+            'total_movies': total_movies
         })
 
     @app.route('/movies/<int:movie_id>', methods=['DELETE'])
-    @requires_auth('delete:movies') 
+    @requires_auth('delete:movies')
     def delete_specific_movie(jwt, movie_id):
-        movie = Movie.query.get(movie_id)
-        if movie == None:
+        try:
+            movie = Movie.query.get(movie_id)
+            movie.delete()
+        except AttributeError:
+            db.session.rollback()
+            db.session.close()
             abort(404)
-        # print(movie.format())
-        # print(f'deleted {movie.name}')
-        movie.delete()
         query = Movie.query.all()
         total_movies = len(query)
         movies = paginate(query, request)
-        # formated_movies = [movie.format() for movie in movies]
         return jsonify({
             'success': True,
             'deleted': movie_id,
@@ -291,22 +313,27 @@ def create_app(test_config=False):
     # #--------------------------------------------------
 
     @app.route('/movies/cast/<int:movie_id>', methods=['PATCH'])
-    @requires_auth('patch:movies') 
+    @requires_auth('patch:movies')
     def cast_movie(jwt, movie_id):
-        actor_id = request.form.get('id')
+        body = request.get_json()
+        actor_id = body.get('id')
         actor = Actor.query.get(actor_id)
         movie = Movie.query.get(movie_id)
-        if (movie == None) or (actor == None):
+        try:
+            movie.actors.append(actor)
+            movie.update()
+        except AttributeError:
+            db.session.rollback()
+            db.session.close()
             abort(404)
-        movie.actors.append(actor)
-        movie.update()
-        # print(f'Movie: {movie}')
-        # print('movie')
         return jsonify({
             'success': True,
             'production': Movie.query.get(movie_id).format()
         })
 
+    # #--------------------------------------------------
+    # # Error Handling
+    # #--------------------------------------------------
 
     @app.errorhandler(400)
     def bad_request(error):
@@ -364,8 +391,8 @@ def create_app(test_config=False):
             "message": "Server error"
         }), 500
 
-
     return app
+
 
 # create app
 app = create_app()

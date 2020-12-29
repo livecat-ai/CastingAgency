@@ -7,17 +7,26 @@ from flask_migrate import Migrate
 
 db = SQLAlchemy()
 
+
 def setup_db(app, database_path):
     app.config['SQLALCHEMY_DATABASE_URI'] = database_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.app = app
     db.init_app(app)
-    db.create_all()  
-    
+    db.create_all()
+
+
 movie_cast = db.Table('movie_cast',
-    db.Column('movie_id', db.Integer, db.ForeignKey('movie.id'), primary_key=True),
-    db.Column('actor_id', db.Integer, db.ForeignKey('actor.id'), primary_key=True)
-    )
+                      db.Column('movie_id',
+                                db.Integer,
+                                db.ForeignKey('movie.id'),
+                                primary_key=True),
+                      db.Column('actor_id',
+                                db.Integer,
+                                db.ForeignKey('actor.id'),
+                                primary_key=True)
+                      )
+
 
 class Movie(db.Model):
     __tablename__ = "movie"
@@ -25,47 +34,21 @@ class Movie(db.Model):
     title = db.Column(db.String, nullable=False)
     releasedate = db.Column(db.Date, nullable=False)
     actors = db.relationship('Actor', secondary=movie_cast,
-        backref=db.backref('movies', lazy=True))
+                             backref=db.backref('movies', lazy=True))
 
     def __repr__(self):
         return f'< Movie: {self.title} >'
 
     def insert(self):
-        try:
-            db.session.add(self)
-            db.session.commit()
-        except:
-            db.session.rollback()
-            db.session.close()
-            print(sys.exc_info())
-            abort(422)
+        db.session.add(self)
+        db.session.commit()
 
     def update(self):
-        error = None
-        try:
-            db.session.commit()
-        except:
-            db.session.rollback()
-            error = 422
-            print(sys.exc_info())
-        finally:
-            db.session.close()
-        if error != None:
-            abort(error)
-        
+        db.session.commit()
+
     def delete(self):
-        error = None
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except:
-            db.session.rollback()
-            error = 422
-            print(sys.exc_info())
-        finally:
-            db.session.close()
-        if error != None:
-            abort(error)
+        db.session.delete(self)
+        db.session.commit()
 
     def format(self):
         return {
@@ -74,7 +57,6 @@ class Movie(db.Model):
             "releasedate": self.releasedate,
             "actors": [actor.format() for actor in self.actors]
         }
-
 
 
 class Actor(db.Model):
@@ -88,48 +70,15 @@ class Actor(db.Model):
         return f'< Actors: {self.name}, {self.age}, {self.gender} >'
 
     def insert(self):
-        # error = None
-        # try:
-        #     db.session.add(self)
-        #     db.session.commit()
-        # except:
-        #     db.session.rollback()
-        #     error = 422
-        #     print(sys.exc_info())
-        # finally:
-        #     db.session.close()
-        # if error != None:
-        #     abort(error)
         db.session.add(self)
         db.session.commit()
-  
-    def update(self):
-        error = None
-        try:
-            db.session.commit()
-        except:
-            db.session.rollback()
-            error = 422
-            print(sys.exc_info())
-        finally:
-            db.session.close()
-        if error != None:
-            abort(error)
-        
-    def delete(self):
-        error = None
-        try:
-            db.session.delete(self)
-            db.session.commit()
-        except:
-            db.session.rollback()
-            error = 422
-            print(sys.exc_info())
-        finally:
-            db.session.close()
-        if error != None:
-            abort(error)
 
+    def update(self):
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
 
     def format(self):
         return {
@@ -138,6 +87,3 @@ class Actor(db.Model):
             "age": self.age,
             "gender": self.gender
         }
-
-
-

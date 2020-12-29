@@ -16,9 +16,11 @@ class CastingTestCase(unittest.TestCase):
 
     def setUp(self):
         # Uncomment this while connecting to heroku
-        # self.database_path = "postgres://ahqolbipadtbpj:8166ebc8ce23e355a963e79e074c28775b189944b6935e1a3a2278b906fa4882@ec2-3-208-50-226.compute-1.amazonaws.com:5432/dbo69r1cnn6k5m"
- 
- 
+        # self.database_path = "postgres://ahqolbipadtbpj:
+        #                       8166ebc8ce23e355a963e79e074c28775
+        #                       b189944b6935e1a3a2278b906fa4882@
+        #                       ec2-3-208-50-226.compute-1.
+        #                       amazonaws.com:5432/dbo69r1cnn6k5m"
         self.app = create_app(test_config=True)
         self.client = self.app.test_client
         with self.app.app_context():
@@ -32,7 +34,7 @@ class CastingTestCase(unittest.TestCase):
         self.db.app = self.app
         self.db.init_app(self.app)
         self.db.create_all()
-            
+
     def tearDown(self):
         pass
 
@@ -42,9 +44,10 @@ class CastingTestCase(unittest.TestCase):
                   ["Sigurney Weaver", 71, "f"],
                   ['Noomi Rapace', 41,  'f'],
                   ['Idris Elba', 48, 'm']]
+
         def add_new_actor(name, age, gender):
             query = Actor.query.filter(Actor.name == name).first()
-            if query == None:
+            if query is None:
                 actor = Actor(name=name, age=age, gender=gender)
                 actor.insert()
         for actor in actors:
@@ -60,9 +63,10 @@ class CastingTestCase(unittest.TestCase):
                  ["Blade Runner", date(1982, 6, 25), []],
                  ["Thelma and Louise", date(1991, 5, 24), []]
                  ]
-        def add_new_movie(title, date, actors = []):
+
+        def add_new_movie(title, date, actors=[]):
             query = Movie.query.filter(Movie.title == title).first()
-            if query == None:
+            if query is None:
                 movie = Movie(title=title, releasedate=date, actors=actors)
                 movie.insert()
         for movie in movies:
@@ -73,21 +77,25 @@ class CastingTestCase(unittest.TestCase):
         self.db.session.commit()
 
     def add_productions(self):
-        actors = Actor.query.filter(Actor.name.in_(['Charlize Theron', 'Noomi Rapace'])).all()
+        actors = Actor.query.filter(Actor.name.in_([
+                                    'Charlize Theron',
+                                    'Noomi Rapace'
+                                    ])).all()
         movie = Movie.query.filter(Movie.title == 'Prometheus').first()
         movie.actors = actors
         movie.update()
 
-    
-    #---------------------------------
+    # ---------------------------------
     # Test - All users
     # Run tests for endpoints authorized for all users
-    #---------------------------------
-    
+    # ---------------------------------
+
     def test_get_actors(self):
         for user in jwt.casting_assistant_and_above:
             header = {'Authorization': 'Bearer ' + user}
-            res = self.client().get('/actors?page=1', headers = header)
+            res = self.client().get('/actors?page=1',
+                                    content_type='application/json',
+                                    headers=header)
             print(res)
             data = json.loads(res.data)
             self.assertEqual(res.status_code, 200)
@@ -98,7 +106,9 @@ class CastingTestCase(unittest.TestCase):
     def test_get_actors_not_found(self):
         for user in jwt.casting_assistant_and_above:
             header = {'Authorization': 'Bearer ' + user}
-            res = self.client().get('/actors?page=1000', headers = header)
+            res = self.client().get('/actors?page=1000',
+                                    content_type='application/json',
+                                    headers=header)
             data = json.loads(res.data)
             self.assertEqual(res.status_code, 404)
             self.assertEqual(data['success'], False)
@@ -106,7 +116,9 @@ class CastingTestCase(unittest.TestCase):
     def test_get_movies(self):
         for user in jwt.casting_assistant_and_above:
             header = {'Authorization': 'Bearer ' + user}
-            res = self.client().get('/movies?page=1', headers = header)
+            res = self.client().get('/movies?page=1',
+                                    content_type='application/json',
+                                    headers=header)
             data = json.loads(res.data)
             # print(res)
             # print(data)
@@ -118,15 +130,18 @@ class CastingTestCase(unittest.TestCase):
     def test_get_movies_not_found(self):
         for user in jwt.casting_assistant_and_above:
             header = {'Authorization': 'Bearer ' + user}
-            res = self.client().get('/movies?page=1000', headers = header)
+            res = self.client().get('/movies?page=1000',
+                                    content_type='application/json',
+                                    headers=header)
             data = json.loads(res.data)
             self.assertEqual(res.status_code, 404)
             self.assertEqual(data['success'], False)
 
-
     # def test_search_actors(self):
     #     search_item =  {'name': 'char'}
-    #     res = self.client().post(f'/actors/search', data=json.dumps(search_item), content_type='application/json')
+    #     res = self.client().post(f'/actors/search',
+    #                              data=json.dumps(search_item),
+    #                              content_type='application/json')
     #     data = json.loads(res.data)
     #     # print(data)
     #     self.assertEqual(res.status_code, 200)
@@ -157,18 +172,19 @@ class CastingTestCase(unittest.TestCase):
     #     self.assertEqual(res.status_code, 404)
     #     self.assertEqual(data['success'], False)
 
-
-    #---------------------------------
+    # ---------------------------------
     # Test - Casting Director
     # Run tests for endpoints authorized for Casting Directors or above
-    #---------------------------------
-    
+    # ---------------------------------
+
     def test_add_new_actor(self):
         # send put request for id
         for user in jwt.casting_director_and_above:
             header = {'Authorization': 'Bearer ' + user}
             new_actor = {'name': 'Colin Farrel', 'age': 44, 'gender': 'm'}
-            res = self.client().post(f'/actors', data=json.dumps(new_actor), content_type='application/json', headers = header)
+            res = self.client().post(f'/actors', data=json.dumps(new_actor),
+                                     content_type='application/json',
+                                     headers=header)
             data = json.loads(res.data)
             # query the updated id so we can check it worked
             actor = get_last_item_in_db(Actor)
@@ -183,7 +199,9 @@ class CastingTestCase(unittest.TestCase):
         for user in jwt.casting_director_and_above:
             header = {'Authorization': 'Bearer ' + user}
             new_actor = {'name': 3, 'age': '3.14', 'gender': 0}
-            res = self.client().post(f'/actors', data=json.dumps(new_actor), content_type='application/json', headers = header)
+            res = self.client().post(f'/actors', data=json.dumps(new_actor),
+                                     content_type='application/json',
+                                     headers=header)
             data = json.loads(res.data)
             self.assertEqual(res.status_code, 422)
             self.assertEqual(data['success'], False)
@@ -196,7 +214,7 @@ class CastingTestCase(unittest.TestCase):
             query = get_last_item_in_db(Actor)
             id = query.id
             # send request to delete id
-            res = self.client().delete(f'/actors/{id}', headers = header)
+            res = self.client().delete(f'/actors/{id}', headers=header)
             data = json.loads(res.data)
             # query the deleted id so we can check it doesn't exist anymore
             actor = Actor.query.get(id)
@@ -214,41 +232,63 @@ class CastingTestCase(unittest.TestCase):
             # set id to first existing row
             id = get_last_item_in_db(Actor).id + 100
             # send request to delete id
-            res = self.client().delete(f'/actors/{id}', headers = header)
+            res = self.client().delete(f'/actors/{id}', headers=header)
             data = json.loads(res.data)
             # run tests
             self.assertEqual(res.status_code, 404)
             self.assertEqual(data['success'], False)
 
-    def test_cast_production(self):
+    def test_cast_movie(self):
         for user in jwt.casting_director_and_above:
             header = {'Authorization': 'Bearer ' + user}
             # Setup
             movie_title = 'Prometheus'
             actor_name = 'Idris Elba'
-            movie = Movie.query.filter(Movie.title.ilike(f'{movie_title}')).first()
+            movie = Movie.query.filter(Movie.title.ilike(
+                                       f'{movie_title}')
+                                       ).first()
             movie_id = movie.id
-            actor_id = Actor.query.filter(Actor.name.ilike(f'{actor_name}')).first().id
-            res = self.client().patch(f'movies/cast/{movie_id}', data = dict(id=f'{actor_id}'), headers = header)
+            actor_id = Actor.query.filter(Actor.name.ilike(
+                                          f'{actor_name}')
+                                          ).first().id
+            res = self.client().patch(f'movies/cast/{movie_id}',
+                                      data=json.dumps(dict(id=f'{actor_id}')),
+                                      content_type='application/json',
+                                      headers=header)
             data = json.loads(res.data)
             # Tests
             self.assertEqual(res.status_code, 200)
             self.assertEqual(data['success'], True)
-            actor_names = [actor['name'] for actor in data['production']['actors']]
+            actor_names = [actor['name'] for actor
+                           in data['production']['actors']]
             self.assertIn(actor_name, actor_names)
-            # Reset database 
-            movie = Movie.query.filter(Movie.title.ilike(f'{movie_title}')).first()
-            movie.actors = Actor.query.filter(Actor.name.in_(['Charlize Theron', 'Noomi Rapace'])).all()
+            # Reset database
+            movie = Movie.query.filter(Movie.title.ilike(
+                                       f'{movie_title}')).first()
+            movie.actors = Actor.query.filter(
+                                              Actor.name.in_(
+                                                [
+                                                    'Charlize Theron',
+                                                    'Noomi Rapace'
+                                                ]
+                                              )).all()
             movie.update()
 
-    def test_cast_production_not_found(self):
-        movie_title = 'Breakdance 2: Electric Boogaloo'
-        actor_name = 'Tom Hanks'
-        actor_id = Actor.query.filter(Actor.name.ilike(f'{actor_name}')).first().id
-        movie_id = 1000
-        res = self.client().patch(f'productions/create/{movie_id}', data = dict(id=f'{actor_id}'))
-        # Tests
-        self.assertEqual(res.status_code, 404)
+    def test_cast_movie_not_found(self):
+        for user in jwt.casting_director_and_above:
+            header = {'Authorization': 'Bearer ' + user}
+            movie_title = 'Breakdance 2: Electric Boogaloo'
+            actor_name = 'Tom Hanks'
+            actor_id = Actor.query.filter(Actor.name.ilike(
+                                          f'{actor_name}')
+                                          ).first().id
+            movie_id = 1000
+            res = self.client().patch(f'movies/cast/{movie_id}',
+                                      data=json.dumps(dict(id=f'{actor_id}')),
+                                      content_type='application/json',
+                                      headers=header)
+            # Tests
+            self.assertEqual(res.status_code, 404)
 
     # def test_edit_actor_age(self):
     #     # set id to first existing row
@@ -277,28 +317,26 @@ class CastingTestCase(unittest.TestCase):
         # self.assertEqual(data['success'], False)
 
     # def test_cast_actors(self):
-    #     actors = Actor.query.filter(Actor.name.in_(['Charlize Theron', 'Noomi Rapace'])).all()
+    #     actors = Actor.query.filter(Actor.name.in_(
+    #                               ['Charlize Theron',
+    #                                'Noomi Rapace'])).all()
     #     movie = Movie.query.filter(Movie.title == 'Prometheus').first()
     #     res = self.client().put(f'/production/{id}', data=actor_id)
 
-
-
-
-    # #---------------------------------
-    # # Test Movie
-    # #---------------------------------
-
-    #---------------------------------
+    # ---------------------------------
     # Test - Exec Producer
     # Run tests for endpoints authorized for Exec Producers or above
-    #---------------------------------
+    # ---------------------------------
 
     def test_add_new_movie(self):
         for user in jwt.exec_producer:
             header = {'Authorization': 'Bearer ' + user}
             # send put request for id
             new_movie = {'title': 'Gladiator', 'releasedate': '2000-05-12'}
-            res = self.client().post(f'/movies/create', data=json.dumps(new_movie), content_type='application/json', headers = header)
+            res = self.client().post(f'/movies/create',
+                                     data=json.dumps(new_movie),
+                                     content_type='application/json',
+                                     headers=header)
             data = json.loads(res.data)
             # query the updated id so we can check it worked
             movie = get_last_item_in_db(Movie)
@@ -307,13 +345,17 @@ class CastingTestCase(unittest.TestCase):
             self.assertEqual(res.status_code, 200)
             self.assertEqual(data['success'], True)
             self.assertEqual(movie.title, new_movie['title'])
-            self.assertEqual(movie.releasedate.strftime('%Y-%m-%d'), new_movie['releasedate'])
+            self.assertEqual(movie.releasedate.strftime('%Y-%m-%d'),
+                             new_movie['releasedate'])
 
     def test_add_new_movie_invalid(self):
         for user in jwt.exec_producer:
             header = {'Authorization': 'Bearer ' + user}
             new_movie = {'title': 3, 'releasedate': '3.14'}
-            res = self.client().post(f'/movies/create', data=json.dumps(new_movie), content_type='application/json', headers = header)
+            res = self.client().post(f'/movies/create',
+                                     data=json.dumps(new_movie),
+                                     content_type='application/json',
+                                     headers=header)
             data = json.loads(res.data)
             self.assertEqual(res.status_code, 400)
             self.assertEqual(data['success'], False)
@@ -327,7 +369,7 @@ class CastingTestCase(unittest.TestCase):
             id = query.id
             # print(f'deleting movie {query}')
             # send request to delete id
-            res = self.client().delete(f'/movies/{id}', headers = header)
+            res = self.client().delete(f'/movies/{id}', headers=header)
             data = json.loads(res.data)
             # query the deleted id so we can check it doesn't exist anymore
             movie = Movie.query.get(id)
@@ -345,29 +387,28 @@ class CastingTestCase(unittest.TestCase):
             # set id to first existing row
             id = get_last_item_in_db(Movie).id + 100
             # send request to delete id
-            res = self.client().delete(f'/movies/{id}', headers = header)
+            res = self.client().delete(f'/movies/{id}', headers=header)
             data = json.loads(res.data)
             # run tests
             self.assertEqual(res.status_code, 404)
             self.assertEqual(data['success'], False)
 
-    
-        
     # def test_is_valid_date_string(self):
     #     date_string = '2000-05-12'
     #     self.assertTrue(is_valid_date_string(date_string))
- 
-    
+
     # def test_search_movies(self):
     #     search_item =  {'title': 'run'}
-    #     res = self.client().post(f'/movies/search', data=json.dumps(search_item), content_type='application/json')
+    #     res = self.client().post(f'/movies/search',
+    #                   data=json.dumps(search_item),
+    #                   content_type='application/json')
     #     data = json.loads(res.data)
     #     print(data)
     #     # print(data)
     #     self.assertEqual(res.status_code, 200)
     #     self.assertEqual(data['success'], True)
-    #     self.assertIn(search_item['title'], data['movies'][0]['title'].lower())
-
+    #     self.assertIn(search_item['title'],
+    #                   data['movies'][0]['title'].lower())
 
     # def test_get_specific_movie(self):
     #     # get details of first row in db
@@ -395,7 +436,6 @@ class CastingTestCase(unittest.TestCase):
     #     self.assertEqual(res.status_code, 404)
     #     self.assertEqual(data['success'], False)
 
- 
     # def test_edit_movie_releasedate(self):
     #     # set id to first existing row
     #     id = 1
@@ -403,7 +443,8 @@ class CastingTestCase(unittest.TestCase):
     #     original_date = query.releasedate
     #     new_date = date(2020, 7, 1)
     #     # send put request for id
-    #     res = self.client().patch(f'/movies/{id}', data=dict(releasedate=new_date))
+    #     res = self.client().patch(f'/movies/{id}',
+    #                       data=dict(releasedate=new_date))
     #     data = json.loads(res.data)
     #     # query the updated id so we can check it worked
     #     movie = Movie.query.get(id)
@@ -418,24 +459,21 @@ class CastingTestCase(unittest.TestCase):
     #     # set id to first existing row
     #     id = get_last_item_in_db(Movie).id + 100
     #     # send request to delete id
-    #     res = self.client().patch(f'/movies/{id}', data=dict(releasedate=date(1066, 10, 14)))
+    #     res = self.client().patch(f'/movies/{id}',
+    #                  data=dict(releasedate=date(1066, 10, 14)))
     #     data = json.loads(res.data)
     #     # run tests
     #     self.assertEqual(res.status_code, 404)
     #     self.assertEqual(data['success'], False)
-
-
-
-#---------------------------------
+# ---------------------------------
 # Global helper functions
-#---------------------------------
+# ---------------------------------
+
 
 def get_last_item_in_db(db_table_object):
     table = db_table_object
     return table.query.order_by(table.id.desc()).first()
 
 
-
 if __name__ == "__main__":
     unittest.main()
-
