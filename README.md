@@ -344,7 +344,6 @@ The JWT token contains the permissions for the 'user' and 'seller' roles.
 
 ## DEPLOYMENT
 The app is hosted live on heroku at the URL: 
-https://warranty-tracker.herokuapp.com
+https://casting-jal.herokuapp.com/
 
-However, there is no frontend for this app yet, and it can only be presently used to authenticate using Auth0 by entering
-credentials and retrieving a fresh token to use with curl or postman.
+However, there is no frontend for this app yet, and the api can only be used with curl or postman etc.
